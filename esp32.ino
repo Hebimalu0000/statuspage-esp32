@@ -7,7 +7,8 @@ const char *ssid = "{ssid}";
 const char *password = "{password}";
 
 const String token = "{token}";
-
+const String pageId = "{pageId}";
+const String componentId = "{componentId}";
 
 void setup() {
   WiFi.begin(ssid, password);
@@ -25,41 +26,39 @@ void setup() {
 }
 
 void loop() {
-  static int lastState = LOW;
+  static int lastState = HIGH;
 
   int state = digitalRead(BUTTON_PIN);
   if (state == LOW && lastState == HIGH) {
-    sendStatus("TRUE");
+    sendStatus("degraded_performance","This system is used. Please wait until it is finished.");
   }
   if (state == HIGH && lastState == LOW) {
-    sendStatus("FALSE");
+    sendStatus("operational","Can be used this system.");
   }
   lastState = state;
   delay(100);
 }
 
-void sendStatus(String message) { 
+void sendStatus(String message, String description) { 
   HTTPClient client;
 
-  if (message == TRUE) {
-    const updateData = {
-      component: {
-        status: status,
-        description: description,
-      },
-    };
+  String url = "https://api.statuspage.io/v1/pages/" + pageId + "/components/" + componentId;
+  client.begin(url);
+  client.addHeader("Content-Type", "application/json");
+  client.addHeader("Authorization", "OAuth" + apiKey);
+
+  // JSON形式のデータを作成
+  String jsonPayload = "{\"component\": {\"status\": \"" + message + "\", \"description\": \"" + description + "\"}}";
+
+  int httpResponseCode = client.PATCH(jsonPayload);
+
+  if (httpResponseCode > 0) {
+    Serial.println("HTTP Response Code: " + String(httpResponseCode));
+    String response = client.getString();
+    Serial.println("Response: " + response);
+  } else {
+    Serial.println("Error on sending POST: " + String(client.errorToString(httpResponseCode).c_str()));
   }
 
-  String url = "https://api.statuspage.io/v1/pages/" + pageId + "/components/" + componentId ;
-  client.begin(url);
-  client.addHeader("Content-Type", "application/x-www-form-urlencoded");
-  client.addHeader("Authorization", "Bearer " + token);
-
-  String query = "message=" + message;
-  client.POST(query);
-
-  String body = client.getString();
-  Serial.println("Sent the message");
-  Serial.println(body);
   client.end();
 }
