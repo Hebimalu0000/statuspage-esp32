@@ -41,6 +41,15 @@ void loop() {
 void sendStatus(String message) { 
   HTTPClient client;
 
+  if (message == TRUE) {
+    const updateData = {
+      component: {
+        status: status,
+        description: description,
+      },
+    };
+  }
+
   String url = "https://api.statuspage.io/v1/pages/" + pageId + "/components/" + componentId ;
   client.begin(url);
   client.addHeader("Content-Type", "application/x-www-form-urlencoded");
